@@ -33,12 +33,12 @@ class Scanner {
                     resolve(arg);
                 });
             }
+        }).then(res => {
             success = success.reduce((acc, current) => {
                 acc.open = acc.open.concat(current.open);
                 acc.closed = acc.closed.concat(current.closed);
                 return acc;
             }, {open: [], closed: []});
-        }).then(res => {
             return this.showOpenGates(success);
         });
 
