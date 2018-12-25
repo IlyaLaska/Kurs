@@ -8,58 +8,63 @@ const err = require('./errors.js');
 console.log(process.argv);
 
 const scanPortUDP = (port, host, family, success, callback) => {
-  let socket;
-  if (family === 4) socket = dgram.createSocket('udp4');
-  else if (family === 6) socket = dgram.createSocket('udp6');
+    let socket;
+    if (family === 4) socket = dgram.createSocket('udp4');
+    else if (family === 6) socket = dgram.createSocket('udp6');
 
-      socket.send('my packet', 0, 9, parseInt(port), host
-          , (err, bytes) => {
-              // console.log("ERROR: " + err, bytes);
-              // success.closed.push({port: port, host: host, method:'UDP', family: 'ipv' + family});
-              setTimeout(() => {
-                  socket.unref();
-                  socket.close();
-                  if(callback) callback('timeout');
-              }, 2000);
-          }
-      );
+    socket.send('my packet', 0, 9, parseInt(port), host
+        , (err, bytes) => {
+            // console.log("ERROR: " + err, bytes);
+            // success.closed.push({port: port, host: host, method:'UDP', family: 'ipv' + family});
+            setTimeout(() => {
+                socket.unref();
+                socket.close();
+                if (callback) callback('timeout');
+            }, 2000);
+        }
+    );
 
-  socket.on('error', (err) => {
-      console.log("called error");
-      console.log(err);
-      success.closed.push({port: port, host: host, method:'UDP', family: 'ipv' + family});
-      // socket.unref();
-      // socket.close();
-      if(callback) callback('closed');
-  });
+    socket.on('error', (err) => {
+        console.log("called error");
+        console.log(err);
+        success.closed.push({port: port, host: host, method: 'UDP', family: 'ipv' + family});
+        // socket.unref();
+        // socket.close();
+        if (callback) callback('closed');
+    });
 
-  socket.on('message', (msg, info) => {
-      console.log(`socket got: ${msg} from ${info.address}:${info.port}`);
-      success.open.push({port: port, host: host, method:'UDP', family: 'ipv' + family});
-      if(callback) callback('open');
-  });
+    socket.on('message', (msg, info) => {
+        console.log(`socket got: ${msg} from ${info.address}:${info.port}`);
+        success.open.push({port: port, host: host, method: 'UDP', family: 'ipv' + family});
+        if (callback) callback('open');
+    });
 
-  socket.on('listening', () => {//empty arg list
-      console.log(`server listening ${socket.address().address}:${socket.address().port}`);
-  });
+    socket.on('listening', () => {//empty arg list
+        console.log(`server listening ${socket.address().address}:${socket.address().port}`);
+    });
 };
 
 const scanPort = (port, host, family, success, callback) => {
-  let socket = net.createConnection({port: port, host: host, family: family});
+    let socket = net.createConnection({port: port, host: host, family: family});
 
-  socket.on('error', err => {
-      success.closed.push({port: socket.remotePort, host: socket.remoteAddress, method: 'TCP', family: 'ipv' + family});
-      socket.unref();
-      socket.end();
-      if(callback) callback('closed');
-  });
+    socket.on('error', err => {
+        success.closed.push({
+            port: socket.remotePort,
+            host: socket.remoteAddress,
+            method: 'TCP',
+            family: 'ipv' + family
+        });
+        socket.unref();
+        socket.end();
+        if (callback) callback('closed');
+    });
 
-  socket.on('connect', () => {
-      success.open.push({port: socket.remotePort, host: socket.remoteAddress, method: 'TCP', family: 'ipv' + family});
-      socket.unref();
-      socket.end();
-      if(callback) callback('open');
-  });
+    socket.on('connect', () => {
+        success.open.push({port: socket.remotePort, host: socket.remoteAddress, method: 'TCP', family: 'ipv' + family});
+        socket.unref();
+        socket.end();
+        if (callback) callback('open');
+    });
 
     socket.on('data', (data) => {
         console.log(data.toString());
@@ -73,8 +78,8 @@ const scanPortRange = (ports, hosts, method, family) => {
     };
     Promise.all(hosts.map(host => {
         return ports.map(port => {
-            if(method === 'tcp') return new Promise((resolve, reject) => scanPort(port, host, family, success, (arg) => resolve(arg)));
-            else if(method === 'udp') return new Promise((resolve, reject) => scanPortUDP(port, host, family, success, (arg) => resolve(arg)));
+            if (method === 'tcp') return new Promise((resolve, reject) => scanPort(port, host, family, success, (arg) => resolve(arg)));
+            else if (method === 'udp') return new Promise((resolve, reject) => scanPortUDP(port, host, family, success, (arg) => resolve(arg)));
             else return Promise.reject('Unknown method used');
         });
     }).reduce((first, second) => first.concat(second), []))
@@ -87,30 +92,21 @@ const scanPortRange = (ports, hosts, method, family) => {
         });
 };
 
-const showOpenGates = (success, method) => {
-  console.log('Scanning complete');
-  // console.log(success);
-  if(method === 'tcp') {
-      if(success.open.length <= success.closed.length || success.open.length <= 100) {//less open ports than closed
-          console.log('Open ports are:');
-          if(success.open.length === 0) console.log('None');
-          else success.open.map(port => {
-              console.log(port);
-          });
-      } else {//less closed ports
-          console.log('Too many open ports. Closed ports are:');
-          if(success.closed.length === 0) console.log('None');
-          else success.closed.map( port => {
-              console.log(port);
-          })
-      }
-  } else if( method === 'udp') {
-      console.log('All ports that are not in use are presumed open. Ports in use are: ');
-      if(success.open.length === 0) console.log('None');
-      else success.open.map(port => {
-          console.log(port);
-      })
-  }
+const showOpenGates = (success) => {
+    console.log('Scanning complete');
+    if (success.open.length <= success.closed.length || success.open.length <= 100) {//less open ports than closed
+        console.log('Open ports are:');
+        if (success.open.length === 0) console.log('None');
+        else success.open.map(port => {
+            console.log(port);
+        });
+    } else {//less closed ports
+        console.log('Too many open ports. Closed ports are:');
+        if (success.closed.length === 0) console.log('None');
+        else success.closed.map(port => {
+            console.log(port);
+        })
+    }
 };
 
 const parsePorts = ports => {
@@ -131,10 +127,10 @@ const parseHosts = hosts => {
     let isIPV6 = false;
     let isURL = false;
     hosts.split(',').map((host) => {
-        if(host.indexOf(':') !== -1 && !(host.split(':')[0].slice(0,4) === 'http')) isIPV6 = true;
-        else if( isNaN(parseInt(host.split('.').pop())) ) isURL = true;
+        if (host.indexOf(':') !== -1 && !(host.split(':')[0].slice(0, 4) === 'http')) isIPV6 = true;
+        else if (isNaN(parseInt(host.split('.').pop()))) isURL = true;
     });
-    if(!isURL && !isIPV6) {
+    if (!isURL && !isIPV6) {
         if (hosts.indexOf('-') !== -1) {
             return hosts.split(',').map(host => {
                 if (host.indexOf('-') !== -1) {
@@ -149,14 +145,14 @@ const parseHosts = hosts => {
                 return host;
             }).reduce((first, second) => first.concat(second), []);
         } else return hosts.split(',');
-    } else if(isURL) {
-        if(hosts.indexOf(',') !== -1) return hosts.split(',');
+    } else if (isURL) {
+        if (hosts.indexOf(',') !== -1) return hosts.split(',');
         else {
             const returner = [];
             returner.push(hosts);
             return returner;
         }
-    } else if(isIPV6) {
+    } else if (isIPV6) {
         if (hosts.indexOf('-') !== -1) {
             return hosts.split(',').map(host => {
                 if (host.indexOf('-') !== -1) {//has range
@@ -179,8 +175,8 @@ const parseHosts = hosts => {
 };
 
 const checkPortRangeValidity = range => {
-    if(range[0] === "" || range[1] === "") throw new err.RangeError('Unbounded port range', range);
-    if(parseInt(range[0]) > parseInt(range[1])) {
+    if (range[0] === "" || range[1] === "") throw new err.RangeError('Unbounded port range', range);
+    if (parseInt(range[0]) > parseInt(range[1])) {
         let tempZero = range[0];
         range[0] = range[1];
         range[1] = tempZero;
@@ -188,9 +184,9 @@ const checkPortRangeValidity = range => {
 };
 
 const checkIPV6HostRangeValidity = range => {
-    if((range[0].lastIndexOf(':') === range[0].length - 1 && range[0] !== '::')//':' is the last elem, but address is not '::'
+    if ((range[0].lastIndexOf(':') === range[0].length - 1 && range[0] !== '::')//':' is the last elem, but address is not '::'
         || (range[1].lastIndexOf(':') === range[1].length - 1) && range[1] !== '::') throw new err.RangeError('Unbounded host range', range);
-    if(parseInt(range[0].slice(range[0].lastIndexOf(':')+1), 16) > parseInt(range[1].slice(range[1].lastIndexOf(':')+1), 16)) {
+    if (parseInt(range[0].slice(range[0].lastIndexOf(':') + 1), 16) > parseInt(range[1].slice(range[1].lastIndexOf(':') + 1), 16)) {
         let tempZero = range[0];
         range[0] = range[1];
         range[1] = tempZero;
@@ -198,9 +194,9 @@ const checkIPV6HostRangeValidity = range => {
 };
 
 const checkIPV4HostRangeValidity = range => {
-    if(range[0].lastIndexOf('.') === range[0].length - 1
+    if (range[0].lastIndexOf('.') === range[0].length - 1
         || range[1].lastIndexOf('.') === range[1].length - 1) throw new err.RangeError('Unbounded host range', range);
-    if(parseInt(range[0].slice(range[0].lastIndexOf('.')+1)) > parseInt(range[1].slice(range[1].lastIndexOf('.')+1))) {
+    if (parseInt(range[0].slice(range[0].lastIndexOf('.') + 1)) > parseInt(range[1].slice(range[1].lastIndexOf('.') + 1))) {
         let tempZero = range[0];
         range[0] = range[1];
         range[1] = tempZero;
@@ -591,12 +587,12 @@ const parseArgs = () => {
                 return process.exit(0);
         }
     } catch (e) {
-        if(e instanceof err.BadHostNotationError) {
+        if (e instanceof err.BadHostNotationError) {
             console.log(e.name);
             console.log(e.message + ": " + e.host);
             console.log(e.stack);
             process.exit(1);
-        } else if(e instanceof err.RangeError) {
+        } else if (e instanceof err.RangeError) {
             console.log(e.name);
             console.log(e.message + ": " + e.range);
             console.log(e.stack);
@@ -620,15 +616,16 @@ const parseArgs = () => {
     };
 };
 
-/*Main()*/{
+/*Main()*/
+{
     const scanParameters = parseArgs();
     console.log(scanParameters);
-    if(scanParameters.tcp) {
-        if(scanParameters.ipv4) scanPortRange(scanParameters.ports, scanParameters.hosts, 'tcp', 4);
-        if(scanParameters.ipv6) scanPortRange(scanParameters.ports, scanParameters.hosts, 'tcp', 6);
+    if (scanParameters.tcp) {
+        if (scanParameters.ipv4) scanPortRange(scanParameters.ports, scanParameters.hosts, 'tcp', 4);
+        if (scanParameters.ipv6) scanPortRange(scanParameters.ports, scanParameters.hosts, 'tcp', 6);
     }
-    if(scanParameters.udp) {
-        if(scanParameters.ipv4) scanPortRange(scanParameters.ports, scanParameters.hosts, 'udp', 4);
-        if(scanParameters.ipv6) scanPortRange(scanParameters.ports, scanParameters.hosts, 'udp', 6);
+    if (scanParameters.udp) {
+        if (scanParameters.ipv4) scanPortRange(scanParameters.ports, scanParameters.hosts, 'udp', 4);
+        if (scanParameters.ipv6) scanPortRange(scanParameters.ports, scanParameters.hosts, 'udp', 6);
     }
 }

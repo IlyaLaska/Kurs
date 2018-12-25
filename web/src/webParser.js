@@ -132,6 +132,9 @@ class Parser {
             open: [],
             closed: []
         };
+        console.log('START scanPortRange');
+        console.log(ports, hosts);
+        console.log('END scanPortRange');
         // console.log('In scanPortRange');
         Promise.all(hosts.map(host => {
             // console.log("Begin host ", host);
@@ -146,13 +149,14 @@ class Parser {
             });
         }).reduce((first, second) => first.concat(second), []))
             .then((res) => {
+                console.dir(success);
                 // console.log(res);
                 if(callback) callback('done');
                 return this.showOpenGates(success, method);
                 
             }, (err) => {
               this._output += err;
-              return;
+              // return;
               // process.exit(1);
             });
             

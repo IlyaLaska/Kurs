@@ -12,10 +12,8 @@ class Scanner {
         const parser = new Parser();
 
         let success = [];
-        let method = '';
         new Promise((resolve) => {
             if(parser.scanParameters.tcp) {
-                method = 'tcp';
                 if(parser.scanParameters.ipv4) this.scanPortRange(parser.scanParameters.ports, parser.scanParameters.hosts, 'tcp', 4, (arg, scanRes) => {
                     success = scanRes;
                     resolve(arg);
@@ -26,7 +24,6 @@ class Scanner {
                 });
             }
             if(parser.scanParameters.udp) {
-                method = 'udp';
                 if(parser.scanParameters.ipv4) this.scanPortRange(parser.scanParameters.ports, parser.scanParameters.hosts, 'udp', 4, (arg, scanRes) => {
                     success = scanRes;
                     resolve(arg);
@@ -37,7 +34,7 @@ class Scanner {
                 });
             }
         }).then(res => {
-            return this.showOpenGates(success, method);
+            return this.showOpenGates(success);
         });
 
     }
@@ -125,30 +122,25 @@ class Scanner {
         }).reduce((first, second) => first.concat(second), []))
             .then((res) => {
                 if(callback) callback('done', success);
-                else return this.showOpenGates(success, method);
+                else return this.showOpenGates(success);
             }, (err) => {
                 console.log(err);
                 process.exit(1);
             });
     };
 
-    showOpenGates(success, method) {
+    showOpenGates(success) {
         console.log('Scanning complete');
-        if (method === 'tcp') {
-            if (success.open.length <= success.closed.length) {//less open ports than closed
-                console.log('Open ports are:');
-                success.open.map(port => {
-                    console.log(port);
-                });
-            } else {//less closed ports
-                console.log('Too many open ports. Closed ports are:');
-                success.closed.map(port => {
-                    console.log(port);
-                })
-            }
-        } else if (method === 'udp') {
-            console.log('All ports that are not in use are presumed open. Ports in use are: ');
-            success.open.map(port => {
+        if (success.open.length <= success.closed.length || success.open.length <= 100) {//less open ports than closed
+            console.log('Open ports are:');
+            if (success.open.length === 0) console.log('None');
+            else success.open.map(port => {
+                console.log(port);
+            });
+        } else {//less closed ports
+            console.log('Too many open ports. Closed ports are:');
+            if (success.closed.length === 0) console.log('None');
+            else success.closed.map(port => {
                 console.log(port);
             })
         }
