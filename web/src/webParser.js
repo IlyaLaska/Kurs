@@ -205,11 +205,17 @@ class Parser {
     parseHosts(hosts) {
         let isIPV6 = false;
         let isURL = false;
+        let withHTTP = false;
         // if(hosts.indexOf('.') === -1) throw new err.BadHostNotationError('Incorrect host notation', hosts);
         // if(host.split('.').length !== 4) throw new err.BadHostNotationError('Incorrect host notation', hosts);
         hosts.split(',').map((host) => {
-            if (host.indexOf(':') !== -1 && !(host.split(':')[0].slice(0,4) === 'http')) isIPV6 = true;
-            else if (isNaN(parseInt(host.split('.').pop()))) isURL = true;
+            withHTTP = (host.split(':')[0].slice(0,4) === 'http');
+            if (host.indexOf(':') !== -1 && !withHTTP) isIPV6 = true;
+            else if (isNaN(parseInt(host.split('.').pop()))) 
+                  if(withHTTP){
+                    host = host.split(':')[1].slice(2, host.length);
+                  }
+                 else isURL = true;
         });
         if (!isURL && !isIPV6) {
             if (hosts.indexOf('-') !== -1) {
