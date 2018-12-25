@@ -13,32 +13,37 @@ class Scanner {
 
         let success = [];
         new Promise((resolve) => {
-            if(parser.scanParameters.tcp) {
-                if(parser.scanParameters.ipv4) this.scanPortRange(parser.scanParameters.ports, parser.scanParameters.hosts, 'tcp', 4, (arg, scanRes) => {
-                    success = scanRes;
+            if (parser.scanParameters.tcp) {
+                if (parser.scanParameters.ipv4) this.scanPortRange(parser.scanParameters.ports, parser.scanParameters.hosts, 'tcp', 4, (arg, scanRes) => {
+                    success.push(scanRes);
                     resolve(arg);
                 });
-                if(parser.scanParameters.ipv6) this.scanPortRange(parser.scanParameters.ports, parser.scanParameters.hosts, 'tcp', 6, (arg, scanRes) => {
-                    success = scanRes;
-                    resolve(arg);
-                });
-            }
-            if(parser.scanParameters.udp) {
-                if(parser.scanParameters.ipv4) this.scanPortRange(parser.scanParameters.ports, parser.scanParameters.hosts, 'udp', 4, (arg, scanRes) => {
-                    success = scanRes;
-                    resolve(arg);
-                });
-                if(parser.scanParameters.ipv6) this.scanPortRange(parser.scanParameters.ports, parser.scanParameters.hosts, 'udp', 6, (arg, scanRes) => {
-                    success = scanRes;
+                if (parser.scanParameters.ipv6) this.scanPortRange(parser.scanParameters.ports, parser.scanParameters.hosts, 'tcp', 6, (arg, scanRes) => {
+                    success.push(scanRes);
                     resolve(arg);
                 });
             }
+            if (parser.scanParameters.udp) {
+                if (parser.scanParameters.ipv4) this.scanPortRange(parser.scanParameters.ports, parser.scanParameters.hosts, 'udp', 4, (arg, scanRes) => {
+                    success.push(scanRes);
+                    resolve(arg);
+                });
+                if (parser.scanParameters.ipv6) this.scanPortRange(parser.scanParameters.ports, parser.scanParameters.hosts, 'udp', 6, (arg, scanRes) => {
+                    success.push(scanRes);
+                    resolve(arg);
+                });
+            }
+            success = success.reduce((acc, current) => {
+                acc.open = acc.open.concat(current.open);
+                acc.closed = acc.closed.concat(current.closed);
+                return acc;
+            }, {open: [], closed: []});
         }).then(res => {
             return this.showOpenGates(success);
         });
 
     }
-    
+
     scanPortUDP(port, host, family, success, callback) {
         let socket;
         if (family === 4) socket = dgram.createSocket('udp4');
@@ -51,7 +56,7 @@ class Scanner {
                 setTimeout(() => {
                     socket.unref();
                     socket.close();
-                    if(callback) callback('timeout');
+                    if (callback) callback('timeout');
                 }, 2000);
             }
         );
@@ -59,16 +64,16 @@ class Scanner {
         socket.on('error', (err) => {
             console.log("called error");
             console.log(err);
-            success.closed.push({port: port, host: host, method:'UDP', family: 'ipv' + family});
+            success.closed.push({port: port, host: host, method: 'UDP', family: 'ipv' + family});
             // socket.unref();
             // socket.close();
-            if(callback) callback('closed');
+            if (callback) callback('closed');
         });
 
         socket.on('message', (msg, info) => {
             console.log(`socket got: ${msg} from ${info.address}:${info.port}`);
-            success.open.push({port: port, host: host, method:'UDP', family: 'ipv' + family});
-            if(callback) callback('open');
+            success.open.push({port: port, host: host, method: 'UDP', family: 'ipv' + family});
+            if (callback) callback('open');
         });
 
         socket.on('listening', () => {//empty arg list
@@ -121,7 +126,7 @@ class Scanner {
             });
         }).reduce((first, second) => first.concat(second), []))
             .then((res) => {
-                if(callback) callback('done', success);
+                if (callback) callback('done', success);
                 else return this.showOpenGates(success);
             }, (err) => {
                 console.log(err);
