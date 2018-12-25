@@ -3,7 +3,7 @@
 const net = require('net');
 const dgram = require('dgram');
 
-const err = require('./errors.js');
+const err = require('../errors.js');
 
 console.log(process.argv);
 
@@ -616,8 +616,7 @@ const parseArgs = () => {
     };
 };
 
-/*Main()*/
-{
+/*Main()*/{
     const scanParameters = parseArgs();
     console.log(scanParameters);
     if (scanParameters.tcp) {
